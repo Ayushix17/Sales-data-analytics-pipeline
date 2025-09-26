@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .dashboard-header p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+        }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .kpi-card h3 {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .kpi-card .value {
+            color: #2c3e50;
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .kpi-card .change {
+            font-size: 0.9em;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .positive { background: #d5f4e6; color: #16a085; }
+        .negative { background: #fadbd8; color: #e74c3c; }
+
+        .chart-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-title {
+            color: #2c3e50;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2em;
+            }
+            
+            .kpi-container {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>📊 Sales Analytics Dashboard</h1>
+            <p>Real-time insights into revenue growth, customer behavior, and product performance</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <h3>Total Revenue</h3>
+                <div class="value" id="total-revenue">$0</div>
+                <div class="change positive" id="revenue-change">+0%</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Active Customers</h3>
+                <div class="value" id="active-customers">0</div>
+                <div class="change positive" id="customers-change">+0%</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Avg Order Value</h3>
+                <div class="value" id="avg-order-value">$0</div>
+                <div class="change negative" id="aov-change">-0%</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Churn Rate</h3>
+                <div class="value" id="churn-rate">0%</div>
+                <div class="change negative" id="churn-change">+0%</div>
+            </div>
+        </div>
+
+        <!-- Time Filter -->
+        <div class="filter-container">
+            <button class="filter-btn active" onclick="updateTimeFilter('7d')">Last 7 Days</button>
+            <button class="filter-btn" onclick="updateTimeFilter('30d')">Last 30 Days</button>
+            <button class="filter-btn" onclick="updateTimeFilter('90d')">Last 90 Days</button>
+            <button class="filter-btn" onclick="updateTimeFilter('1y')">Last Year</button>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-title">📈 Revenue Trend</div>
+                <div id="revenue-chart" style="height: 400px;"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🎯 Customer Segments</div>
+                <div id="customer-segments-chart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-title">🏆 Top Products Performance</div>
+                <div id="products-chart" style="height: 400px;"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🌍 Regional Performance</div>
+                <div id="regional-chart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <div class="chart-container full-width">
+            <div class="chart-card">
+                <div class="chart-title">📅 Sales Heatmap by Day & Hour</div>
+                <div id="heatmap-chart" style="height: 500px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated sales data
+        let salesData = {
+            revenue: {
+                daily: [],
+                monthly: [],
+                dates: []
+            },
+            customers: {
+                segments: ['Champions', 'Loyal Customers', 'Potential Loyalists', 'New Customers', 'At Risk', 'Lost'],
+                counts: [1250, 2340, 1890, 980, 760, 420]
+            },
+            products: {
+                names: ['iPhone 15', 'Samsung Galaxy S24', 'MacBook Air', 'Dell XPS 13', 'iPad Pro', 'Surface Laptop', 'AirPods Pro', 'Sony WH-1000XM5'],
+                sales: [89500, 67200, 45800, 38900, 42100, 35600, 28900, 31200]
+            },
+            regions: {
+                names: ['North', 'South', 'East', 'West'],
+                sales: [125000, 98500, 87300, 110200]
+            }
+        };
+
+        let currentTimeFilter = '7d';
+
+        // Generate sample data
+        function generateSampleData() {
+            const today = new Date();
+            const days = 30;
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                
+                const baseRevenue = 15000 + Math.random() * 10000;
+                const seasonality = Math.sin((date.getDay() / 7) * Math.PI * 2) * 2000;
+                const trend = (days - i) * 100;
+                const revenue = baseRevenue + seasonality + trend + (Math.random() - 0.5) * 3000;
+                
+                salesData.revenue.daily.push(Math.max(revenue, 5000));
+                salesData.revenue.dates.push(date.toISOString().split('T')[0]);
+            }
+
+            // Generate monthly data
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(today);
+                date.setMonth(today.getMonth() - i);
+                const monthlyRevenue = 350000 + (Math.random() - 0.5) * 50000 + (11 - i) * 5000;
+                salesData.revenue.monthly.push({
+                    month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                    revenue: Math.max(monthlyRevenue, 200000)
+                });
+            }
+        }
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            generateSampleData();
+            updateKPIs();
+            createRevenueChart();
+            createCustomerSegmentsChart();
+            createProductsChart();
+            createRegionalChart();
+            createHeatmapChart();
+        }
+
+        // Update KPI cards
+        function updateKPIs() {
+            const totalRevenue = salesData.revenue.daily.reduce((a, b) => a + b, 0);
+            const avgOrderValue = totalRevenue / (salesData.revenue.daily.length * 12); // Approximate
+            const totalCustomers = salesData.customers.counts.reduce((a, b) => a + b, 0);
+            const churnRate = ((salesData.customers.counts[4] + salesData.customers.counts[5]) / totalCustomers * 100);
+
+            document.getElementById('total-revenue').textContent = `$${(totalRevenue / 1000).toFixed(0)}K`;
+            document.getElementById('active-customers').textContent = totalCustomers.toLocaleString();
+            document.getElementById('avg-order-value').textContent = `$${avgOrderValue.toFixed(0)}`;
+            document.getElementById('churn-rate').textContent = `${churnRate.toFixed(1)}%`;
+
+            // Simulate growth rates
+            document.getElementById('revenue-change').textContent = '+12.5%';
+            document.getElementById('customers-change').textContent = '+8.3%';
+            document.getElementById('aov-change').textContent = '-2.1%';
+            document.getElementById('churn-change').textContent = '+1.2%';
+        }
+
+        // Create revenue trend chart
+        function createRevenueChart() {
+            const trace = {
+                x: salesData.revenue.dates,
+                y: salesData.revenue.daily,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Daily Revenue',
+                line: { color: '#667eea', width: 3 },
+                marker: { color: '#667eea', size: 6 },
+                fill: 'tonexty',
+                fillcolor: 'rgba(102, 126, 234, 0.1)'
+            };
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Date', showgrid: false },
+                yaxis: { title: 'Revenue ($)', showgrid: true, gridcolor: '#f0f0f0' },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Segoe UI', color: '#2c3e50' },
+                margin: { l: 60, r: 20, t: 20, b: 60 }
+            };
+
+            Plotly.newPlot('revenue-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Create customer segments pie chart
+        function createCustomerSegmentsChart() {
+            const trace = {
+                labels: salesData.customers.segments,
+                values: salesData.customers.counts,
+                type: 'pie',
+                marker: {
+                    colors: ['#1abc9c', '#3498db', '#9b59b6', '#e67e22', '#e74c3c', '#95a5a6']
+                },
+                textinfo: 'label+percent',
+                textposition: 'outside',
+                hovertemplate: '<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+            };
+
+            const layout = {
+                title: '',
+                font: { family: 'Segoe UI', color: '#2c3e50' },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 20, r: 20, t: 20, b: 20 },
+                showlegend: false
+            };
+
+            Plotly.newPlot('customer-segments-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Create products bar chart
+        function createProductsChart() {
+            const trace = {
+                x: salesData.products.sales,
+                y: salesData.products.names,
+                type: 'bar',
+                orientation: 'h',
+                marker: {
+                    color: salesData.products.sales,
+                    colorscale: [[0, '#e8f4fd'], [1, '#667eea']],
+                    showscale: false
+                },
+                hovertemplate: '<b>%{y}</b><br>Sales: $%{x:,.0f}<extra></extra>'
+            };
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Sales ($)', showgrid: true, gridcolor: '#f0f0f0' },
+                yaxis: { title: '', automargin: true },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Segoe UI', color: '#2c3e50' },
+                margin: { l: 100, r: 20, t: 20, b: 40 }
+            };
+
+            Plotly.newPlot('products-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Create regional performance chart
+        function createRegionalChart() {
+            const trace = {
+                labels: salesData.regions.names,
+                values: salesData.regions.sales,
+                type: 'pie',
+                hole: 0.4,
+                marker: {
+                    colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c']
+                },
+                textinfo: 'label+value',
+                texttemplate: '<b>%{label}</b><br>$%{value:,.0f}',
+                hovertemplate: '<b>%{label} Region</b><br>Sales: $%{value:,.0f}<br>Share: %{percent}<extra></extra>'
+            };
+
+            const layout = {
+                title: '',
+                font: { family: 'Segoe UI', color: '#2c3e50' },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 20, r: 20, t: 20, b: 20 },
+                showlegend: false,
+                annotations: [{
+                    text: '<b>Total Sales</b><br>$421K',
+                    showarrow: false,
+                    font: { size: 14, color: '#2c3e50' }
+                }]
+            };
+
+            Plotly.newPlot('regional-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Create sales heatmap
+        function createHeatmapChart() {
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const z = [];
+
+            // Generate sample heatmap data
+            for (let day = 0; day < 7; day++) {
+                const row = [];
+                for (let hour = 0; hour < 24; hour++) {
+                    let intensity;
+                    if (day < 5) { // Weekdays
+                        if (hour >= 9 && hour <= 18) {
+                            intensity = 70 + Math.random() * 30;
+                        } else if (hour >= 19 && hour <= 22) {
+                            intensity = 40 + Math.random() * 30;
+                        } else {
+                            intensity = Math.random() * 20;
+                        }
+                    } else { // Weekends
+                        if (hour >= 10 && hour <= 20) {
+                            intensity = 50 + Math.random() * 40;
+                        } else {
+                            intensity = Math.random() * 25;
+                        }
+                    }
+                    row.push(intensity);
+                }
+                z.push(row);
+            }
+
+            const trace = {
+                z: z,
+                x: hours,
+                y: days,
+                type: 'heatmap',
+                colorscale: [[0, '#f8f9fa'], [0.5, '#667eea'], [1, '#2c3e50']],
+                hovertemplate: '<b>%{y}</b> at %{x}:00<br>Sales Activity: %{z:.1f}%<extra></extra>'
+            };
+
+            const layout = {
+                title: '',
+                xaxis: { title: 'Hour of Day', dtick: 2 },
+                yaxis: { title: 'Day of Week' },
+                font: { family: 'Segoe UI', color: '#2c3e50' },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 100, r: 60, t: 20, b: 60 }
+            };
+
+            Plotly.newPlot('heatmap-chart', [trace], layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Time filter functionality
+        function updateTimeFilter(period) {
+            currentTimeFilter = period;
+            
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update charts based on filter (simplified for demo)
+            const filterMultiplier = {
+                '7d': 0.7,
+                '30d': 1.0,
+                '90d': 1.3,
+                '1y': 2.0
+            };
+
+            // Update KPIs based on filter
+            const baseRevenue = 465000;
+            const filteredRevenue = baseRevenue * filterMultiplier[period];
+            document.getElementById('total-revenue').textContent = `$${(filteredRevenue / 1000).toFixed(0)}K`;
+
+            // Regenerate charts with filtered data (simplified)
+            createRevenueChart();
+        }
+
+        // Auto-refresh functionality
+        function autoRefresh() {
+            // Simulate real-time updates
+            const fluctuation = (Math.random() - 0.5) * 0.02; // ±1% fluctuation
+            const currentRevenue = parseFloat(document.getElementById('total-revenue').textContent.replace('$', '').replace('K', '')) * 1000;
+            const newRevenue = currentRevenue * (1 + fluctuation);
+            document.getElementById('total-revenue').textContent = `$${(newRevenue / 1000).toFixed(0)}K`;
+
+            // Update other KPIs similarly
+            setTimeout(autoRefresh, 30000); // Refresh every 30 seconds
+        }
+
+        // Initialize dashboard on page load
+        window.addEventListener('load', function() {
+            initializeDashboard();
+            autoRefresh();
+        });
+
+        // Handle responsive behavior
+        window.addEventListener('resize', function() {
+            Plotly.Plots.resize('revenue-chart');
+            Plotly.Plots.resize('customer-segments-chart');
+            Plotly.Plots.resize('products-chart');
+            Plotly.Plots.resize('regional-chart');
+            Plotly.Plots.resize('heatmap-chart');
+        });
+    </script>
+</body>
+</html>

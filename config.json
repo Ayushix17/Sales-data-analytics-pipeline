@@ -1,0 +1,87 @@
+{
+  "database": {
+    "type": "sqlite",
+    "path": "data/sales_data.db",
+    "connection_string": "sqlite:///data/sales_data.db",
+    "pool_size": 20,
+    "max_overflow": 30
+  },
+  "paths": {
+    "data_dir": "data/",
+    "backup_dir": "backups/",
+    "log_dir": "logs/",
+    "report_dir": "reports/",
+    "temp_dir": "temp/"
+  },
+  "email_alerts": {
+    "enabled": true,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "your-email@company.com",
+    "sender_name": "Sales Analytics System",
+    "recipients": [
+      "manager@company.com",
+      "analyst@company.com"
+    ],
+    "alert_types": {
+      "pipeline_failure": true,
+      "data_quality_issues": true,
+      "weekly_reports": true
+    }
+  },
+  "data_sources": {
+    "crm_api_url": "https://api.crm-system.com/v1",
+    "erp_api_url": "https://api.erp-system.com/v2",
+    "pos_api_url": "https://api.pos-system.com/data",
+    "file_sources": [
+      "data/raw/sales/",
+      "data/raw/customers/",
+      "data/raw/products/"
+    ],
+    "api_timeout": 30,
+    "max_retries": 3
+  },
+  "quality_thresholds": {
+    "min_daily_transactions": 100,
+    "max_transaction_amount": 10000,
+    "data_freshness_hours": 24,
+    "duplicate_threshold": 0.05,
+    "missing_data_threshold": 0.1
+  },
+  "schedule": {
+    "etl_frequency": "daily",
+    "etl_time": "02:00",
+    "backup_frequency": "daily",
+    "backup_time": "01:00",
+    "report_frequency": "weekly",
+    "report_day": "monday",
+    "report_time": "08:00"
+  },
+  "dashboard": {
+    "port": 8050,
+    "host": "0.0.0.0",
+    "debug": false,
+    "cache_timeout": 300,
+    "max_upload_size": "100MB"
+  },
+  "security": {
+    "secret_key_length": 32,
+    "session_timeout": 3600,
+    "rate_limit": {
+      "requests_per_minute": 100,
+      "burst_requests": 20
+    }
+  },
+  "monitoring": {
+    "log_level": "INFO",
+    "metrics_enabled": true,
+    "health_check_interval": 30,
+    "retention_days": 30
+  },
+  "performance": {
+    "batch_size": 1000,
+    "worker_processes": 4,
+    "memory_limit": "2GB",
+    "query_timeout": 300
+  }
+}
